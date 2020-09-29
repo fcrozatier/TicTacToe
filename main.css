@@ -1,0 +1,72 @@
+html {
+  box-sizing: border-box;
+  font-family: "Permanent Marker", cursive;
+  /* font-family: "Open Sans", "Helvetica Neue", sans-serif; */
+  font-size: 30px;
+  font-weight: 200;
+  text-align: center;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
+.gameboard {
+  margin: 0 auto;
+  width: 328px;
+  border: 7px solid black;
+  display: grid;
+  grid-template-columns: repeat(3, 100px);
+  gap: 7px;
+  background-color: black;
+}
+
+.cell {
+  width: 100px;
+  height: 100px;
+  background-color: white;
+  display: grid;
+  justify-content: center;
+  align-items: center;
+}
+
+.cell:hover {
+  background: hsl(275, 70%, 97%);
+}
+
+.X {
+  color: hsl(325, 100%, 50%);
+}
+
+.X:hover {
+  background-color: white;
+}
+
+.O {
+  color: hsl(220, 100%, 50%);
+}
+
+.O:hover {
+  background-color: white;
+}
+
+.warnings {
+  min-height: 2em;
+}
+
+.new-game {
+  padding: 15px;
+  margin-bottom: 50px;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  font-family: "Open Sans", "Helvetica Neue", sans-serif;
+  color: white;
+  font-weight: bold;
+}
+
+.new-game:hover {
+  background-color: hsl(275, 90%, 60%);
+}
