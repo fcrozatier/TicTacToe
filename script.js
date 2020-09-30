@@ -1,5 +1,9 @@
 let GameBoard = (function () {
-  let content = [" ", " ", " ", " ", " ", " ", " ", " ", " "];
+  let content = Array(9).fill("");
+
+  let getState = function () {
+    return content;
+  };
 
   let display = function () {
     let cells = Array.from(document.querySelectorAll(".cell"));
@@ -9,7 +13,7 @@ let GameBoard = (function () {
   };
 
   let setCell = function (index, marker) {
-    if (content[index] == " ") {
+    if (isEmpty(content[index])) {
       content[index] = marker;
       this.display();
       return true;
@@ -17,62 +21,94 @@ let GameBoard = (function () {
     return false;
   };
 
-  let notEmpty = function (cell) {
-    return cell != " ";
+  let isEmpty = function (cell) {
+    return cell == "";
   };
 
-  let checkEndOfGame = function () {
-    return content.every((cell) => notEmpty(cell));
+  let listEmptyCells = function (state = content) {
+    let indexes = Array(9)
+      .fill(0)
+      .map((x, i) => x + i);
+    return indexes.filter((x) => isEmpty(state[x]));
   };
 
-  let checkRow = function (row) {
+  let checkEndOfGame = function (state = content) {
+    return state.every((cell) => !isEmpty(cell));
+  };
+
+  let checkRow = function (
+    row,
+    state = content,
+    playerMarker = state[3 * row]
+  ) {
     if (
-      notEmpty(content[3 * row]) &&
-      content[3 * row] == content[3 * row + 1] &&
-      content[3 * row + 1] == content[3 * row + 2]
+      !isEmpty(state[3 * row]) &&
+      playerMarker == state[3 * row] &&
+      state[3 * row] == state[3 * row + 1] &&
+      state[3 * row + 2] == state[3 * row + 1]
     ) {
       return true;
     }
   };
 
-  let checkColumn = function (column) {
+  let checkColumn = function (
+    column,
+    state = content,
+    playerMarker = state[column]
+  ) {
     if (
-      notEmpty(content[column]) &&
-      content[column] == content[column + 3] &&
-      content[column + 3] == content[column + 6]
+      !isEmpty(state[column]) &&
+      playerMarker == state[column] &&
+      state[column] == state[column + 3] &&
+      state[column + 6] == state[column + 3]
     ) {
       return true;
     }
   };
 
-  let checkDiagonals = function () {
-    if (!notEmpty(content[4])) return false;
-    if (content[0] == content[4] && content[4] == content[8]) {
+  let checkDiagonals = function (state = content, playerMarker = state[4]) {
+    if (isEmpty(state[4])) return false;
+    if (
+      state[0] == state[4] &&
+      state[4] == state[8] &&
+      state[4] == playerMarker
+    ) {
       return true;
     }
-    if (content[2] == content[4] && content[4] == content[6]) {
+    if (
+      state[2] == state[4] &&
+      state[4] == state[6] &&
+      state[4] == playerMarker
+    ) {
       return true;
     }
   };
 
-  let checkWinner = function () {
+  let checkWinner = function (state, playerMarker) {
     for (let j = 0; j < 3; j++) {
-      if (checkRow(j) || checkColumn(j)) {
+      if (
+        checkRow(j, state, playerMarker) ||
+        checkColumn(j, state, playerMarker)
+      ) {
         return true;
       }
     }
 
-    return checkDiagonals() ? true : false;
+    return checkDiagonals(state, playerMarker) ? true : false;
   };
 
   let newGame = function () {
-    content = content.map((cell) => (cell = " "));
+    let cells = document.querySelectorAll(".cell");
+    cells.forEach((c) => (c.className = "cell"));
+    content = Array(9).fill("");
     this.display();
   };
 
   return {
+    getState,
     display,
     setCell,
+    listEmptyCells,
     checkWinner,
     checkEndOfGame,
     newGame,
@@ -80,61 +116,92 @@ let GameBoard = (function () {
 })();
 
 let Player = function (marker) {
-  return { marker };
+  return { type: "human", marker };
 };
 
 let Bot = function (marker) {
-  let randomMove = function () {};
+  let randomMove = function (indexes) {
+    let length = indexes.length;
+    let randomIndex = Math.floor(Math.random() * length);
+    return indexes[randomIndex];
+  };
 
-  return { marker, randomMove };
+  return { type: "bot", marker, randomMove };
 };
 
 let GameController = (function () {
-  let players = [Player("X"), Bot("O")];
+  let [player, bot] = [Player("X"), Bot("O")];
+  let players = [player, bot];
+  let playing = 0;
   let board = document.querySelector(".gameboard");
   let newGame = document.querySelector(".new-game");
   let commentsArea = document.querySelector(".comments");
   let warningsArea = document.querySelector(".warnings");
-  let playing = 0;
+  let clickListenerOn = false;
 
-  newGame.addEventListener("click", startNewGame);
-  board.addEventListener("click", drawMarker);
-  message();
+  newGame.addEventListener("click", launchGame);
+  launchGame();
 
-  function startNewGame() {
-    message();
+  function launchGame() {
     playing = 0;
+    message();
     GameBoard.newGame();
+    toggleClickListener();
   }
 
-  function drawMarker(event) {
+  function toggleClickListener() {
+    if (clickListenerOn) {
+      board.removeEventListener("click", pickCell);
+    } else {
+      board.addEventListener("click", pickCell);
+    }
+  }
+
+  function pickCell(event) {
     let cell = event.target.closest(".cell");
     if (cell) {
       let cellIndex = parseInt(cell.dataset.index);
       if (GameBoard.setCell(cellIndex, players[playing].marker)) {
         cell.classList.add(`${players[playing].marker}`);
-        endOfTurn();
+        if (!endOfTurn()) {
+          botTurn();
+        }
       } else {
         message("warning");
       }
     }
   }
 
+  function botTurn() {
+    let botChoice = minimax(GameBoard.getState(), playing)[0];
+    GameBoard.setCell(botChoice, bot.marker);
+    let cell = document.querySelector(`[data-index="${botChoice}"]`);
+    cell.classList.add(`${bot.marker}`);
+    endOfTurn();
+  }
+
   function endOfTurn() {
     if (GameBoard.checkWinner()) {
       message("winner");
-      board.removeEventListener("click", drawMarker);
+      toggleClickListener();
+      return true;
     } else if (GameBoard.checkEndOfGame()) {
       message("draw");
-      board.removeEventListener("click", drawMarker);
+      toggleClickListener();
+      return true;
     } else {
       switchPlayers();
       message();
+      return false;
     }
   }
 
-  function switchPlayers() {
-    playing = (playing + 1) % 2;
+  function switchPlayers(player) {
+    if (player != undefined) {
+      return (player + 1) % 2;
+    } else {
+      playing = (playing + 1) % 2;
+    }
   }
 
   function message(type) {
@@ -152,6 +219,36 @@ let GameController = (function () {
         commentsArea.innerHTML = `Player <span class="${players[playing].marker}">${players[playing].marker}</span> turn`;
         warningsArea.innerHTML = "";
         break;
+    }
+  }
+
+  function minimax(state, currentPlayer) {
+    if (GameBoard.checkWinner(state, bot.marker)) {
+      return ["", 10];
+    } else if (GameBoard.checkWinner(state, player.marker)) {
+      return ["", -10];
+    } else if (GameBoard.checkEndOfGame(state)) {
+      return ["", 0];
+    }
+
+    let moves = [];
+    let scores = [];
+
+    GameBoard.listEmptyCells(state).forEach((cellIndex) => {
+      moves.push(cellIndex);
+      let newState = [...state];
+      newState.splice(cellIndex, 1, players[currentPlayer].marker);
+      scores.push(minimax(newState, switchPlayers(currentPlayer))[1]);
+    });
+
+    if (currentPlayer == 1) {
+      maxScore = Math.max(...scores);
+      maxScoreIndex = scores.indexOf(maxScore);
+      return [moves[maxScoreIndex], maxScore];
+    } else {
+      minScore = Math.min(...scores);
+      minScoreIndex = scores.indexOf(minScore);
+      return [moves[minScoreIndex], minScore];
     }
   }
 })();
