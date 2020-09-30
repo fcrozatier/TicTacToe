@@ -1,3 +1,5 @@
+"use strict";
+
 let GameBoard = (function () {
   let content = Array(9).fill("");
 
@@ -152,8 +154,10 @@ let GameController = (function () {
   function toggleClickListener() {
     if (clickListenerOn) {
       board.removeEventListener("click", pickCell);
+      clickListenerOn = false;
     } else {
       board.addEventListener("click", pickCell);
+      clickListenerOn = true;
     }
   }
 
@@ -211,9 +215,11 @@ let GameController = (function () {
         break;
       case "winner":
         commentsArea.innerHTML = `<span class="${players[playing].marker}">${players[playing].marker}</span> wins!`;
+        warningsArea.innerHTML = "";
         break;
       case "draw":
         commentsArea.innerHTML = `It's a draw!`;
+        warningsArea.innerHTML = "";
         break;
       default:
         commentsArea.innerHTML = `Player <span class="${players[playing].marker}">${players[playing].marker}</span> turn`;
@@ -242,12 +248,12 @@ let GameController = (function () {
     });
 
     if (currentPlayer == 1) {
-      maxScore = Math.max(...scores);
-      maxScoreIndex = scores.indexOf(maxScore);
+      let maxScore = Math.max(...scores);
+      let maxScoreIndex = scores.indexOf(maxScore);
       return [moves[maxScoreIndex], maxScore];
     } else {
-      minScore = Math.min(...scores);
-      minScoreIndex = scores.indexOf(minScore);
+      let minScore = Math.min(...scores);
+      let minScoreIndex = scores.indexOf(minScore);
       return [moves[minScoreIndex], minScore];
     }
   }
