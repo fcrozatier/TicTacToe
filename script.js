@@ -148,16 +148,20 @@ let GameController = (function () {
     playing = 0;
     message();
     GameBoard.newGame();
-    toggleClickListener();
+    addListener();
   }
 
-  function toggleClickListener() {
+  function addListener(){
+    if (!clickListenerOn) {
+      board.addEventListener("click", pickCell);
+      clickListenerOn = true;
+    }
+  }
+
+  function removeListener(){
     if (clickListenerOn) {
       board.removeEventListener("click", pickCell);
       clickListenerOn = false;
-    } else {
-      board.addEventListener("click", pickCell);
-      clickListenerOn = true;
     }
   }
 
@@ -187,11 +191,11 @@ let GameController = (function () {
   function endOfTurn() {
     if (GameBoard.checkWinner()) {
       message("winner");
-      toggleClickListener();
+      removeListener();
       return true;
     } else if (GameBoard.checkEndOfGame()) {
       message("draw");
-      toggleClickListener();
+      removeListener();
       return true;
     } else {
       switchPlayers();
